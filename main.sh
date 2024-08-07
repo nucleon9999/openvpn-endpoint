@@ -3,6 +3,13 @@
 set -e
 
 # DO NOT KNOW IF THIS VERSION IS WORKING
+# DO NOT KNOW IF THIS VERSION IS WORKING
+# DO NOT KNOW IF THIS VERSION IS WORKING
+
+
+# this is the script for setting up the server side
+# you could connect to it using 'OpenVPN Connect' on Windows
+# https://openvpn.net/client/
 
 if [[ $EUID -ne 0 ]]; then
   echo "You must be a root user" 1>&2
