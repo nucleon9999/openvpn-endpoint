@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# DO NOT KNOW IF THIS VERSION IS WORKING
-
 set -e
+
+# DO NOT KNOW IF THIS VERSION IS WORKING
 
 if [[ $EUID -ne 0 ]]; then
   echo "You must be a root user" 1>&2
@@ -10,42 +10,56 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 apt-get update -q
+
+apt-get install -qy \
+  openvpn \
+  curl \
+  iptables-persistent \
+  openssl
+
+# Set debconf selections for iptables-persistent
 debconf-set-selections <<EOF
 iptables-persistent iptables-persistent/autosave_v4 boolean true
 iptables-persistent iptables-persistent/autosave_v6 boolean true
 EOF
-apt-get install -qy openvpn curl iptables-persistent
 
+# Navigate to OpenVPN directory
 cd /etc/openvpn
 
-# authority
+# Generate CA keys and certificates
 openssl genpkey -algorithm RSA -out ca-key.pem -pkeyopt rsa_keygen_bits:2048
 openssl req -sha256 -new -key ca-key.pem -out ca-csr.pem -subj /CN=OpenVPN-CA/
 openssl x509 -req -sha256 -in ca-csr.pem -signkey ca-key.pem -days 365 -out ca-cert.pem
 echo 01 > ca-cert.srl
 
-# server
+# Generate server keys and certificates
 openssl genpkey -algorithm RSA -out server-key.pem -pkeyopt rsa_keygen_bits:2048
 openssl req -sha256 -new -key server-key.pem -out server-csr.pem -subj /CN=OpenVPN-Server/
 openssl x509 -sha256 -req -in server-csr.pem -CA ca-cert.pem -CAkey ca-key.pem -days 365 -out server-cert.pem
 
-# client
+# Generate client keys and certificates
 openssl genpkey -algorithm RSA -out client-key.pem -pkeyopt rsa_keygen_bits:2048
 openssl req -sha256 -new -key client-key.pem -out client-csr.pem -subj /CN=OpenVPN-Client/
 openssl x509 -req -sha256 -in client-csr.pem -CA ca-cert.pem -CAkey ca-key.pem -days 365 -out client-cert.pem
 
+# Generate Diffie-Hellman parameters
 openssl dhparam -out dh.pem 2048
 
+# Set appropriate permissions on key files
 chmod 600 *-key.pem
 
+# Enable IP forwarding
 echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 sysctl -p
 
+# Set up NAT using iptables
 iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
 iptables-save > /etc/iptables/rules.v4
 
+# Get the server's public IP
 SERVER_IP=$(curl -s4 ifconfig.me || echo "<insert server IP here>")
 
+# Create OpenVPN configuration files
 cat <<EOF > udp80.conf
 server      10.8.0.0 255.255.255.0
 verb        3
@@ -92,6 +106,7 @@ dev         tap443
 status      openvpn-status-443.log
 EOF
 
+# Create client configuration file
 cat <<EOF > client.ovpn
 client
 nobind
@@ -111,6 +126,7 @@ $(cat ca-cert.pem)
 </ca>
 EOF
 
+# Restart OpenVPN service
 systemctl restart openvpn
 cat client.ovpn
 cd -
