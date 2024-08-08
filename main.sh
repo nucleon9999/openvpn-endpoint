@@ -11,24 +11,38 @@ set -e
 # you could connect to it using 'OpenVPN Connect' on Windows
 # https://openvpn.net/client/
 
+
 if [[ $EUID -ne 0 ]]; then
   echo "You must be a root user" 1>&2
   exit 1
 fi
 
-apt-get update -q
+if [ -f /etc/debian_version ]; then
+  DISTRO="Debian"
+elif [ -f /etc/redhat-release ]; then
+  DISTRO="RedHat"
+else
+  echo "Unsupported distribution" 1>&2
+  exit 1
+fi
 
-apt-get install -qy \
-  openvpn \
-  curl \
-  iptables-persistent \
-  openssl
+# Install necessary packages based on distribution
+if [ "$DISTRO" = "Debian" ]; then
+  apt-get update -q
+  apt-get install -qy openvpn curl iptables-persistent openssl
+elif [ "$DISTRO" = "RedHat" ]; then
+  yum install -y epel-release
+  yum install -y openvpn curl iptables-services openssl
+  systemctl enable iptables
+fi
 
-# Set debconf selections for iptables-persistent
-debconf-set-selections <<EOF
+# Set debconf selections for iptables-persistent (Debian only)
+if [ "$DISTRO" = "Debian" ]; then
+  debconf-set-selections <<EOF
 iptables-persistent iptables-persistent/autosave_v4 boolean true
 iptables-persistent iptables-persistent/autosave_v6 boolean true
 EOF
+fi
 
 # Navigate to OpenVPN directory
 cd /etc/openvpn
@@ -61,7 +75,11 @@ sysctl -p
 
 # Set up NAT using iptables
 iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
-iptables-save > /etc/iptables/rules.v4
+if [ "$DISTRO" = "Debian" ]; then
+  iptables-save > /etc/iptables/rules.v4
+elif [ "$DISTRO" = "RedHat" ]; then
+  service iptables save
+fi
 
 # Get the server's public IP
 SERVER_IP=$(curl -s4 ifconfig.me || echo "<insert server IP here>")
@@ -134,6 +152,11 @@ $(cat ca-cert.pem)
 EOF
 
 # Restart OpenVPN service
-systemctl restart openvpn
+if [ "$DISTRO" = "Debian" ]; then
+  systemctl restart openvpn
+elif [ "$DISTRO" = "RedHat" ]; then
+  systemctl restart openvpn@server
+fi
+
 cat client.ovpn
 cd -
