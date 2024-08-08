@@ -12,23 +12,21 @@ This script sets up an OpenVPN server on Debian-based (Ubuntu) or Red Hat-based 
 2. **Client Configuration**:
    Use the generated `client.ovpn` file to connect to the VPN server using an OpenVPN client.
 
-#### Summary of Script Actions
+#### Script Actions
 
-- **Checks for Root Privileges**
 - **Identifies Distribution**
 - **Installs Required Packages**
 - **Configures IPTables Persistence (Debian)**
-- **Generates Keys and Certificates**:
+- **Generates Keys and Certs**:
   - CA
   - Server
   - Client
-- **Enables IP Forwarding**
-- **Configures NAT with IPTables**
+- **Enable IP Forwarding**
+- **Configure NAT with IPTables**
 - **Creates OpenVPN Server Configurations**:
   - `udp80.conf` for UDP on port 80
   - `tcp443.conf` for TCP on port 443
 - **Creates OpenVPN Client Configuration (`client.ovpn`)**
-- **Restarts OpenVPN Service**
 
 #### Client Setup
 
