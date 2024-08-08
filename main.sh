@@ -34,7 +34,7 @@ elif [ "$DISTRO" = "RedHat" ]; then
   systemctl enable iptables
 fi
 
-# Set debconf selections for iptables-persistent (Debian only)
+# Set debconf selections for iptables-persistent
 if [ "$DISTRO" = "Debian" ]; then
   debconf-set-selections <<EOF
 iptables-persistent iptables-persistent/autosave_v4 boolean true
@@ -42,7 +42,6 @@ iptables-persistent iptables-persistent/autosave_v6 boolean true
 EOF
 fi
 
-# Navigate to OpenVPN directory
 cd /etc/openvpn
 
 # CA keys and certs
