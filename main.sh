@@ -6,11 +6,9 @@ set -e
 # DO NOT KNOW IF THIS VERSION IS WORKING
 # DO NOT KNOW IF THIS VERSION IS WORKING
 
-
 # this is the script for setting up the server side
 # you could connect to it using 'OpenVPN Connect' on Windows
 # https://openvpn.net/client/
-
 
 if [[ $EUID -ne 0 ]]; then
   echo "You must be a root user" 1>&2
@@ -26,7 +24,7 @@ else
   exit 1
 fi
 
-# Install necessary packages based on distribution
+# install packages based on dist
 if [ "$DISTRO" = "Debian" ]; then
   apt-get update -q
   apt-get install -qy openvpn curl iptables-persistent openssl
