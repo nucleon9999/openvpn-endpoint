@@ -47,33 +47,33 @@ fi
 # Navigate to OpenVPN directory
 cd /etc/openvpn
 
-# Generate CA keys and certificates
+# CA keys and certs
 openssl genpkey -algorithm RSA -out ca-key.pem -pkeyopt rsa_keygen_bits:2048
 openssl req -sha256 -new -key ca-key.pem -out ca-csr.pem -subj /CN=OpenVPN-CA/
 openssl x509 -req -sha256 -in ca-csr.pem -signkey ca-key.pem -days 365 -out ca-cert.pem
 echo 01 > ca-cert.srl
 
-# Generate server keys and certificates
+# server keys and certs
 openssl genpkey -algorithm RSA -out server-key.pem -pkeyopt rsa_keygen_bits:2048
 openssl req -sha256 -new -key server-key.pem -out server-csr.pem -subj /CN=OpenVPN-Server/
 openssl x509 -sha256 -req -in server-csr.pem -CA ca-cert.pem -CAkey ca-key.pem -days 365 -out server-cert.pem
 
-# Generate client keys and certificates
+# client keys and certs
 openssl genpkey -algorithm RSA -out client-key.pem -pkeyopt rsa_keygen_bits:2048
 openssl req -sha256 -new -key client-key.pem -out client-csr.pem -subj /CN=OpenVPN-Client/
 openssl x509 -req -sha256 -in client-csr.pem -CA ca-cert.pem -CAkey ca-key.pem -days 365 -out client-cert.pem
 
-# Generate Diffie-Hellman parameters
+# Diffie-Hellman params
 openssl dhparam -out dh.pem 2048
 
-# Set appropriate permissions on key files
+# perms on key files
 chmod 600 *-key.pem
 
-# Enable IP forwarding
+#  IP forwarding
 echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 sysctl -p
 
-# Set up NAT using iptables
+# NAT using iptables
 iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
 if [ "$DISTRO" = "Debian" ]; then
   iptables-save > /etc/iptables/rules.v4
@@ -84,7 +84,7 @@ fi
 # Get the server's public IP
 SERVER_IP=$(curl -s4 ifconfig.me || echo "<insert server IP here>")
 
-# Create OpenVPN configuration files
+# OpenVPN conf files
 cat <<EOF > udp80.conf
 server      10.8.0.0 255.255.255.0
 verb        3
@@ -131,7 +131,7 @@ dev         tap443
 status      openvpn-status-443.log
 EOF
 
-# Create client configuration file
+#client conf file
 cat <<EOF > client.ovpn
 client
 nobind
@@ -151,7 +151,7 @@ $(cat ca-cert.pem)
 </ca>
 EOF
 
-# Restart OpenVPN service
+# restart
 if [ "$DISTRO" = "Debian" ]; then
   systemctl restart openvpn
 elif [ "$DISTRO" = "RedHat" ]; then
